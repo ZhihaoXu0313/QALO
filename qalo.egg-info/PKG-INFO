@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: qalo
+Version: 1.0.0
+Summary: quantum annealing assisted lattice optimization
+Author: Zhihao Xu
+Author-email: zxu8@nd.edu
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
