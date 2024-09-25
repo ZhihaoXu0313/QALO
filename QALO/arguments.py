@@ -13,7 +13,15 @@ class arguments:
         
         # work directory
         self.working_directory = os.getcwd()
+        self.input_directory = os.path.join(self.working_directory, "input")
         self.output_directory = os.path.join(self.working_directory, "output")
+        self.tmp_directory = os.path.join(self.working_directory, "tmp")
+        self.fm_directory = os.path.join(self.working_directory, "fm")
+        self.mlp_directory = os.path.join(self.working_directory, "mlp")
+        self.lmps_directory = os.path.join(self.working_directory, "lmps")
+        self.dft_data_directory = os.path.join(self.working_directory, "database", "dft")
+        self.lmps_infile = "in.snap.lmp"
+        self.lmps_coeffile = "NbMoTaW.snapcoeff"
         
         # factorization machine
         self.fm_learning_rate = 0.05

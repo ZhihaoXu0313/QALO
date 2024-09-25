@@ -8,8 +8,6 @@ from dwave.system import LeapHybridSampler, DWaveSampler, FixedEmbeddingComposit
 import dimod
 from dimod import BinaryQuadraticModel
 from dwave_qbsolv import QBSolv 
-import gurobipy as gp 
-from gurobipy import GRB 
 
 import networkx as nx 
 import minorminer
@@ -102,37 +100,6 @@ def hybrid_quantum_annealing(bqm):
     return sampleset
 
 
-def gurobi_annealing(Q, spc_size, elements, unit_site, time_limit=None, gap_limit=None):
-    Nx, Ny, Nz = spc_size[0], spc_size[1], spc_size[2]
-    nspecies = len(elements)
-    nsites = int(len(unit_site)) * Nx * Ny * Nz
-    
-    quboMat = np.zeros((nsites * nspecies, nsites * nspecies))
-    for i in range(nspecies):
-        for j in range(nsites):
-            for k in range(nspecies):
-                for l in range(nsites):
-                    try:
-                        quboMat[i * nsites + j, k * nsites + l] = Q[('x[' + str(i) + '][' + str(j) + ']', 'x[' + str(k) + '][' + str(l) + ']')]
-                    except KeyError:
-                        pass
-    quboMat = list(quboMat)
-    model = gp.Model("QUBO")
-    n = len(quboMat)
-    
-    if time_limit is not None:
-        model.setParam(GRB.Param.TimeLimit, time_limit)
-    if gap_limit is not None:
-        model.setParam(GRB.Param.MIPGap, gap_limit)
-        
-    variables = [model.addVar(vtype=GRB.BINARY, name=f"x{i}") for i in range(n)]
-    objective = sum(quboMat[i][j] * variables[i] * variables[j] for i in range(n) for j in range(n))
-    model.setObjective(objective, GRB.MINIMIZE)
-    model.optimize()
-    solution = [int(v.x) for v in variables]
-    return solution
-                
-
 class hamiltonian:
     def __init__(self, nspecies, nsites):
         self.nspecies = nspecies
@@ -177,3 +144,39 @@ class hamiltonian:
             print("Invalid translated format!!!")
             
 
+class annealer:
+    def __init__(self, nspecies, nsites, placeholder, fmpath, composition, annealer, mode, ks):
+        self.nspecies = nspecies
+        self.nsites = nsites
+        self.placeholder = placeholder
+        
+        self.hQubo = hamiltonian(nspecies, nsites)
+        self.hQubo.construct_hamiltonian(os.path.join(fmpath, "model.txt"))
+        self.hQubo.apply_constraints(composition, mode, ks)
+        self.hQubo.compile_hamiltonian()
+        
+        self.bqm = self.hQubo.translate(placeholder, 'bqm')
+        self.Q, self.offset = self.hQubo.translate(placeholder, 'qubo')
+        
+        self.annealer = annealer
+        
+        self.structuredfstack = pd.DataFrame()
+    
+    def run(self, n_sim):
+        if self.annealer == 'qasim':
+            for _ in range(n_sim):
+                sampleset = simulate_annealing(self.bqm)
+                dfs = pd.DataFrame(sampleset.lowest())
+                self.structuredfstack = stack_dataframe(dfs, self.structuredfstack)
+                result = translate_result(dfs)
+        elif self.annealer == 'hybrid':
+            for _ in range(n_sim):
+                sampleset = hybrid_quantum_annealing(self.bqm)
+                dfs = pd.DataFrame(sampleset.lowest())
+                self.structuredfstack = stack_dataframe(dfs, self.structuredfstack)
+                result = translate_result(dfs)
+                
+    def extract_solutions(self):
+        columns_sorted = sorted(self.structuredfstack.columns, key=extract_idx)
+        return self.structuredfstack[columns_sorted]
+    
