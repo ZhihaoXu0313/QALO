@@ -1,3 +1,3 @@
 # QALO
 
-This is the source code for QALO v1.0.0
+This is the source code for QALO v1
