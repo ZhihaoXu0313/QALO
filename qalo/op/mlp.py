@@ -1,4 +1,4 @@
-from qalo.utils.data import binvec2poscar, extract_composition
+from qalo.utils.data import DataSystem
 
 from lammps import lammps 
 import numpy as np 
